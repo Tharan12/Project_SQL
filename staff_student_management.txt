@@ -1,0 +1,300 @@
+DROP DATABASE IF EXISTS staff_student_db;
+CREATE DATABASE staff_student_db; USE staff_student_db;
+CREATE TABLE departments (
+dept_id INT PRIMARY KEY AUTO_INCREMENT,
+dept_name VARCHAR(60) NOT NULL UNIQUE, location VARCHAR(50)
+);
+CREATE TABLE staff ( staff_id INT PRIMARY KEY AUTO_INCREMENT,
+first_name VARCHAR(40) NOT NULL,
+last_name VARCHAR(40) NOT NULL,
+email VARCHAR(100) UNIQUE, phone VARCHAR(15),
+job_title VARCHAR(50) NOT NULL,
+salary DECIMAL(10,2) NOT NULL CHECK (salary > 0),
+hire_date DATE NOT NULL, dept_id INT,
+manager_id INT,
+FOREIGN KEY (dept_id) REFERENCES departments(dept_id), FOREIGN KEY (manager_id) REFERENCES staff(staff_id)
+);
+CREATE TABLE students (
+student_id INT PRIMARY KEY AUTO_INCREMENT, first_name VARCHAR(40) NOT NULL,
+last_name VARCHAR(40) NOT NULL,
+email VARCHAR(100) UNIQUE,
+phone VARCHAR(15), city VARCHAR(50),
+admission_date DATE NOT NULL,
+dept_id INT, date_of_birth DATE,
+FOREIGN KEY (dept_id) REFERENCES departments(dept_id)
+);
+CREATE TABLE courses ( course_id INT PRIMARY KEY AUTO_INCREMENT,
+course_name VARCHAR(80) NOT NULL,
+credits INT NOT NULL CHECK (credits > 0),
+dept_id INT, staff_id INT,
+FOREIGN KEY (dept_id) REFERENCES departments(dept_id),
+FOREIGN KEY (staff_id) REFERENCES staff(staff_id)
+); CREATE TABLE enrollments (
+enrollment_id INT PRIMARY KEY AUTO_INCREMENT,
+student_id INT NOT NULL, course_id INT NOT NULL,
+enrollment_date DATE NOT NULL,
+marks DECIMAL(5,2),
+status VARCHAR(15) NOT NULL DEFAULT 'Enrolled', CHECK (marks IS NULL OR (marks BETWEEN 0 AND 100)),
+FOREIGN KEY (student_id) REFERENCES students(student_id),
+FOREIGN KEY (course_id) REFERENCES courses(course_id),
+UNIQUE (student_id, course_id) );
+CREATE INDEX idx_staff_department ON staff(dept_id);
+CREATE INDEX idx_students_department ON students(dept_id); CREATE INDEX idx_enrollments_student ON enrollments(student_id);
+INSERT INTO departments (dept_name, location) VALUES
+('Computer Science', 'Coimbatore'),
+('Information Technology', 'Chennai'), ('Commerce', 'Coimbatore'),
+('Mathematics', 'Madurai'),
+('Mechanical', 'Salem');
+INSERT INTO staff (first_name, last_name, email, phone, job_title, salary, hire_date, dept_id, manager_id)
+VALUES
+('Arun', 'Kumar', 'arun@college.edu', '9876500001', 'Professor', 65000, '2018-06-10', 1, NULL),
+('Priya', 'Sharma', 'priya@college.edu', '9876500002', 'Associate Professor', 52000, '2020-07-15', 1, 1), ('John', 'Smith', NULL, NULL, 'Assistant Professor', 42000, '2022-01-20', 2, 1),
+('Meena', 'Iyer', 'meena@college.edu', '9876500004', 'HOD', 75000, '2016-05-12', 2, NULL),
+('Rahul', 'Verma', 'rahul@college.edu', '9876500005', 'Lab Assistant', 28000, '2023-08-01', 3, 1), ('Kavitha', 'Rao', 'kavitha@college.edu', '9876500006', 'Lecturer', 38000, '2021-06-01', 4, 4);
+INSERT INTO students
+(first_name, last_name, email, phone, city, admission_date, dept_id, date_of_birth)
+VALUES ('Vijay', 'Raj', 'vijay@student.edu', '9000000001', 'Coimbatore', '2023-06-15', 1, '2005-02-10'),
+('Anitha', 'Devi', 'anitha@student.edu', '9000000002', 'Chennai', '2022-06-20', 1, '2004-11-21'),
+('Karthik', 'M', NULL, NULL, 'Erode', '2024-06-10', 2, '2006-04-05'),
+('Divya', 'S', 'divya@student.edu', '9000000004', 'Coimbatore', '2023-07-01', 2, '2005-08-17'), ('Suresh', 'Kumar', 'suresh@student.edu', '9000000005', 'Salem', '2022-06-18', 3, '2004-01-30'),
+('Nithya', 'R', 'nithya@student.edu', '9000000006', 'Madurai', '2024-06-12', 4, '2006-09-12'),
+('Manoj', 'P', 'manoj@student.edu', '9000000007', 'Tiruppur', '2023-06-16', 1, '2005-06-25'); INSERT INTO courses (course_name, credits, dept_id, staff_id) VALUES
+('Python Programming', 4, 1, 1),
+('Database Management', 4, 1, 2),
+('Web Development', 3, 1, 2), ('Computer Networks', 3, 2, 3),
+('Accounting Basics', 3, 3, 5),
+('Engineering Mathematics', 4, 4, 6),
+('Machine Learning', 4, 1, 1); INSERT INTO enrollments (student_id, course_id, enrollment_date, marks, status) VALUES
+(1, 1, '2025-01-10', 88, 'Completed'),
+(1, 2, '2025-01-11', 76, 'Completed'), (2, 1, '2025-01-12', 92, 'Completed'),
+(2, 3, '2025-01-15', 81, 'Completed'),
+(3, 4, '2025-02-01', 65, 'Completed'),
+(4, 4, '2025-02-03', 73, 'Completed'), (4, 2, '2025-02-05', 89, 'Completed'),
+(5, 5, '2025-02-10', 58, 'Completed'),
+(6, 6, '2025-03-01', NULL, 'Enrolled'),
+(3, 2, '2025-03-05', 45, 'Failed'); CREATE VIEW student_course_details AS
+SELECT e.enrollment_id, s.student_id,
+CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+s.city, d.dept_name AS student_department, c.course_id, c.course_name, c.credits,
+CONCAT(st.first_name, ' ', st.last_name) AS staff_name,
+e.enrollment_date, e.marks, e.status FROM enrollments e
+JOIN students s ON s.student_id = e.student_id
+JOIN courses c ON c.course_id = e.course_id
+LEFT JOIN departments d ON d.dept_id = s.dept_id LEFT JOIN staff st ON st.staff_id = c.staff_id;
+SELECT COUNT(*) AS total_enrollments,
+COUNT(DISTINCT student_id) AS enrolled_students,
+ROUND(AVG(marks), 2) AS average_mark, MIN(marks) AS lowest_mark,
+MAX(marks) AS highest_mark
+FROM enrollments WHERE status = 'Completed';
+SELECT COUNT(*) AS total_students,
+COUNT(email) AS students_with_email
+FROM students; SELECT c.course_name, COUNT(e.enrollment_id) AS students_count,
+ROUND(AVG(e.marks), 2) AS average_mark
+FROM courses c
+LEFT JOIN enrollments e ON e.course_id = c.course_id GROUP BY c.course_id, c.course_name
+HAVING COUNT(e.enrollment_id) >= 1
+ORDER BY average_mark DESC; SELECT s.student_id, CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+GROUP_CONCAT(c.course_name ORDER BY c.course_name SEPARATOR ', ') AS courses_taken
+FROM students s
+LEFT JOIN enrollments e ON e.student_id = s.student_id LEFT JOIN courses c ON c.course_id = e.course_id
+GROUP BY s.student_id, student_name;
+SELECT COALESCE(d.dept_name, 'ALL DEPARTMENTS') AS department,
+COALESCE(st.job_title, 'ALL JOB TITLES') AS job_title, COUNT(st.staff_id) AS staff_count, SUM(st.salary) AS total_salary
+FROM departments d
+LEFT JOIN staff st ON st.dept_id = d.dept_id
+GROUP BY d.dept_name, st.job_title WITH ROLLUP; SELECT SUM(status = 'Completed') AS completed,
+SUM(status = 'Enrolled') AS currently_enrolled,
+SUM(status = 'Failed') AS failed FROM enrollments;
+SELECT UPPER(first_name) AS first_name_upper,
+LOWER(city) AS city_lower,
+LENGTH(first_name) AS first_name_length, CONCAT(first_name, ' ', last_name) AS full_name,
+SUBSTRING_INDEX(email, '@', -1) AS email_domain,
+CONCAT(LEFT(city, 3), '-', LPAD(student_id, 3, '0')) AS student_code,
+COALESCE(CONCAT('XXXXXX', RIGHT(phone, 4)), 'No phone') AS masked_phone FROM students;
+SELECT TRIM('   college   ') AS trimmed,
+REPLACE('SQL is hard', 'hard', 'fun') AS replaced, REVERSE('STUDENT') AS reversed,
+LOCATE('@', 'student@college.edu') AS at_position,
+REPEAT('*', 5) AS stars,
+FORMAT(1234567.891, 2) AS formatted_number; SELECT student_id, admission_date,
+YEAR(admission_date) AS admission_year,
+QUARTER(admission_date) AS admission_quarter,
+MONTHNAME(admission_date) AS admission_month, DAYNAME(admission_date) AS admission_weekday,
+DATE_FORMAT(admission_date, '%d %b %Y') AS formatted_date,
+DATE_ADD(admission_date, INTERVAL 4 YEAR) AS expected_completion_date, DATEDIFF(CURDATE(), admission_date) AS days_since_admission
+FROM students;
+SELECT CONCAT(first_name, ' ', last_name) AS staff_name, hire_date,
+TIMESTAMPDIFF(YEAR, hire_date, CURDATE()) AS years_of_service FROM staff;
+SELECT DATE_FORMAT(enrollment_date, '%Y-%m') AS month,
+COUNT(*) AS total_enrollments
+FROM enrollments GROUP BY DATE_FORMAT(enrollment_date, '%Y-%m')
+ORDER BY month;
+SELECT STR_TO_DATE('15-08-2025', '%d-%m-%Y') AS parsed_date;
+SELECT CONCAT(first_name, ' ', last_name) AS staff_name, salary, ROUND(salary * 0.10, 2) AS ten_percent_increment,
+CEIL(salary / 10000) AS salary_band_up,
+FLOOR(salary / 10000) AS salary_band_down, MOD(salary, 1000) AS remainder_1000,
+CASE WHEN salary < 30000 THEN 'Entry Level'
+WHEN salary < 60000 THEN 'Mid Level'
+ELSE 'Senior Level' END AS salary_level FROM staff;
+SELECT student_name, marks,
+CASE WHEN marks IS NULL THEN 'Not graded'
+WHEN marks >= 90 THEN 'A' WHEN marks >= 75 THEN 'B'
+WHEN marks >= 60 THEN 'C'
+WHEN marks >= 50 THEN 'D' ELSE 'F' END AS grade
+FROM (
+SELECT CONCAT(s.first_name, ' ', s.last_name) AS student_name, e.marks
+FROM students s JOIN enrollments e ON e.student_id = s.student_id
+) AS student_marks;
+SELECT first_name,
+IFNULL(email, 'not provided') AS email_ifnull, COALESCE(email, phone, 'no contact') AS best_contact,
+NULLIF(city, 'Coimbatore') AS city_or_null
+FROM students; SELECT course_name,
+ROUND(100.0 / NULLIF(credits, 0), 2) AS value_per_credit_example
+FROM courses;
+SELECT CAST(marks AS SIGNED) AS marks_integer, CAST(marks AS CHAR) AS marks_text,
+CAST('2025-12-31' AS DATE) AS text_to_date
+FROM enrollments
+LIMIT 3; SELECT s.student_id, CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+c.course_name, e.marks
+FROM students s
+JOIN enrollments e ON e.student_id = s.student_id JOIN courses c ON c.course_id = e.course_id;
+SELECT s.student_id, CONCAT(s.first_name, ' ', s.last_name) AS student_name
+FROM students s LEFT JOIN enrollments e ON e.student_id = s.student_id
+WHERE e.enrollment_id IS NULL;
+SELECT c.course_name
+FROM enrollments e RIGHT JOIN courses c ON c.course_id = e.course_id
+WHERE e.enrollment_id IS NULL;
+SELECT CONCAT(emp.first_name, ' ', emp.last_name) AS staff_member,
+CONCAT(mgr.first_name, ' ', mgr.last_name) AS manager FROM staff emp
+LEFT JOIN staff mgr ON emp.manager_id = mgr.staff_id;
+SELECT d.dept_name, c.course_name FROM departments d
+CROSS JOIN courses c
+ORDER BY d.dept_name
+LIMIT 10; SELECT first_name FROM students WHERE first_name LIKE 'A%';
+SELECT course_name FROM courses WHERE course_name LIKE '%Database%';
+SELECT email FROM staff WHERE email REGEXP '^[a-m]';
+SELECT dept_name FROM departments WHERE dept_name IN ('Computer Science', 'Commerce');
+SELECT first_name, last_name, admission_date
+FROM students
+WHERE admission_date BETWEEN '2023-01-01' AND '2023-12-31'; SELECT first_name, last_name, salary
+FROM staff
+WHERE salary > (SELECT AVG(salary) FROM staff); SELECT CONCAT(s.first_name, ' ', s.last_name) AS student_name
+FROM students s
+WHERE EXISTS (
+SELECT 1 FROM enrollments e WHERE e.student_id = s.student_id AND e.status = 'Failed'
+);
+SELECT CONCAT(s.first_name, ' ', s.last_name) AS student_name
+FROM students s WHERE NOT EXISTS (
+SELECT 1 FROM enrollments e WHERE e.student_id = s.student_id
+); SELECT first_name, last_name, dept_id, salary
+FROM staff st
+WHERE salary = (
+SELECT MAX(salary) FROM staff WHERE dept_id = st.dept_id
+);
+WITH student_averages AS (
+SELECT s.student_id, CONCAT(s.first_name, ' ', s.last_name) AS student_name, AVG(e.marks) AS average_mark
+FROM students s
+JOIN enrollments e ON e.student_id = s.student_id GROUP BY s.student_id, student_name
+)
+SELECT student_name, ROUND(average_mark, 2) AS average_mark
+FROM student_averages WHERE average_mark > (SELECT AVG(average_mark) FROM student_averages)
+ORDER BY average_mark DESC;
+WITH RECURSIVE months AS (
+SELECT DATE('2025-01-01') AS month_start UNION ALL
+SELECT DATE_ADD(month_start, INTERVAL 1 MONTH)
+FROM months
+WHERE month_start < '2025-06-01' )
+SELECT DATE_FORMAT(m.month_start, '%b %Y') AS month,
+COUNT(e.enrollment_id) AS enrollment_count FROM months m
+LEFT JOIN enrollments e
+ON DATE_FORMAT(e.enrollment_date, '%Y-%m') = DATE_FORMAT(m.month_start, '%Y-%m')
+GROUP BY m.month_start ORDER BY m.month_start;
+SELECT location AS place FROM departments
+UNION
+SELECT city FROM students; SELECT 'Staff' AS person_type, CONCAT(first_name, ' ', last_name) AS person_name
+FROM staff
+UNION ALL SELECT 'Student', CONCAT(first_name, ' ', last_name)
+FROM students;
+SELECT first_name, last_name, dept_id, salary,
+ROW_NUMBER() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS row_num, RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS salary_rank,
+DENSE_RANK() OVER (PARTITION BY dept_id ORDER BY salary DESC) AS dense_rank_value
+FROM staff;
+SELECT student_name, average_mark, RANK() OVER (ORDER BY average_mark DESC) AS mark_rank,
+NTILE(2) OVER (ORDER BY average_mark DESC) AS performance_group
+FROM ( SELECT CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+AVG(e.marks) AS average_mark
+FROM students s
+JOIN enrollments e ON e.student_id = s.student_id GROUP BY s.student_id, student_name
+) AS averages;
+SELECT enrollment_id, enrollment_date, marks,
+SUM(marks) OVER (ORDER BY enrollment_date, enrollment_id) AS running_marks_total, ROUND(AVG(marks) OVER (
+ORDER BY enrollment_date, enrollment_id
+ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+), 2) AS moving_average_3 FROM enrollments;
+SELECT student_id, course_id, enrollment_date, marks,
+LAG(marks) OVER (PARTITION BY student_id ORDER BY enrollment_date) AS previous_marks, LEAD(enrollment_date) OVER (PARTITION BY student_id ORDER BY enrollment_date) AS next_enrollment_date
+FROM enrollments;
+SELECT first_name, last_name, dept_id, salary,
+FIRST_VALUE(CONCAT(first_name, ' ', last_name)) OVER (PARTITION BY dept_id ORDER BY salary DESC) AS highest_paid_in_department
+FROM staff;
+SELECT course_name, student_name, marks
+FROM ( SELECT c.course_name,
+CONCAT(s.first_name, ' ', s.last_name) AS student_name,
+e.marks, ROW_NUMBER() OVER (
+PARTITION BY c.course_id ORDER BY e.marks DESC
+) AS rn
+FROM enrollments e JOIN students s ON s.student_id = e.student_id
+JOIN courses c ON c.course_id = e.course_id
+) ranked
+WHERE rn = 1; WITH monthly AS (
+SELECT DATE_FORMAT(enrollment_date, '%Y-%m') AS year_month,
+COUNT(*) AS enrollment_count
+FROM enrollments GROUP BY DATE_FORMAT(enrollment_date, '%Y-%m')
+)
+SELECT year_month, enrollment_count, ROUND(
+(enrollment_count - LAG(enrollment_count) OVER (ORDER BY year_month))
+/ NULLIF(LAG(enrollment_count) OVER (ORDER BY year_month), 0) * 100,
+1 ) AS month_over_month_growth_pct
+FROM monthly;
+DELIMITER $$
+CREATE FUNCTION fn_grade(p_marks DECIMAL(5,2)) RETURNS VARCHAR(20) DETERMINISTIC
+BEGIN
+RETURN CASE WHEN p_marks IS NULL THEN 'Not graded'
+WHEN p_marks >= 90 THEN 'A'
+WHEN p_marks >= 75 THEN 'B'
+WHEN p_marks >= 60 THEN 'C' WHEN p_marks >= 50 THEN 'D'
+ELSE 'F'
+END;
+END $$ CREATE PROCEDURE sp_enroll_student(
+IN p_student_id INT,
+IN p_course_id INT )
+BEGIN
+DECLARE v_student INT;
+DECLARE v_course INT; DECLARE EXIT HANDLER FOR SQLEXCEPTION
+BEGIN
+ROLLBACK;
+RESIGNAL; END;
+START TRANSACTION;
+SELECT student_id INTO v_student
+FROM students WHERE student_id = p_student_id FOR UPDATE; SELECT course_id INTO v_course
+FROM courses WHERE course_id = p_course_id FOR UPDATE;
+IF v_student IS NULL OR v_course IS NULL THEN SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT = 'Student or course not found';
+END IF;
+INSERT INTO enrollments (student_id, course_id, enrollment_date, status) VALUES (p_student_id, p_course_id, CURDATE(), 'Enrolled');
+COMMIT;
+SELECT LAST_INSERT_ID() AS new_enrollment_id;
+END $$ CREATE TRIGGER trg_validate_marks
+BEFORE INSERT ON enrollments
+FOR EACH ROW BEGIN
+IF NEW.marks IS NOT NULL AND (NEW.marks < 0 OR NEW.marks > 100) THEN
+SIGNAL SQLSTATE '45000'
+SET MESSAGE_TEXT = 'Marks must be between 0 and 100'; END IF;
+END $$
+DELIMITER ;
+SELECT student_id, course_id, marks, fn_grade(marks) AS grade FROM enrollments;
+CALL sp_enroll_student(7, 7);
+START TRANSACTION; UPDATE staff SET salary = salary + 1000 WHERE staff_id = 5;
+SAVEPOINT after_salary_update;
+UPDATE staff SET salary = salary * 2 WHERE staff_id = 5;
+ROLLBACK TO SAVEPOINT after_salary_update; COMMIT;
+EXPLAIN SELECT * FROM students WHERE dept_id = 1;
